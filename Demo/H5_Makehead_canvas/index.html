@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;" />
+    <title>Canvas 头像制作</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100%; }
+        button:focus {  outline: 0; }
+        .canvas-main { width: 100%; height: 100%; }
+        .input-file-main { position: fixed; left: 0; bottom: 10px; width: 100%; }
+        .input-file-main .fileBtn { position: absolute; left: 20%; bottom: 0px; border: none; border-radius: 5px; width: 100px; height: 35px; text-align: center; line-height: 35px; background-color: aliceblue; }
+        .input-file-main .input-file { position: absolute; left: 20%; bottom: 0; opacity: 0; width: 100px; height: 35px; }
+        .input-file-main .saveImg { position: absolute; right: 20%; bottom: 0px; border: none; border-radius: 5px; width: 100px; height: 35px; text-align: center; line-height: 35px; background-color: aliceblue; }
+        .clipImg { display: none; }
+        .shadeImg {  pointer-events: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+    </style>
+</head>
+
+<body>
+    <div class="canvas-main">
+        <img class="shadeImg">
+        <canvas id="canvas"></canvas>
+    </div>
+    <img class="clipImg" src="" alt="">
+    <div class="input-file-main">
+        <button class="fileBtn" id="fileBtn">上传图片</button>
+        <!-- <input type="file" name="file" accept="image/gif, image/jpeg, image/bmp" capture="camera" imgcount="0" class="input-file" id="fileInput" multiple="multiple"> -->
+        <input type="file" name="file" accept="image/gif, image/jpeg, image/bmp, image/png" capture="camera" class="input-file" id="fileInput">
+        <button class="saveImg" id="saveImg"">保存图片</button>
+    </div>
+</body>
+<script src=" https://cdn.bootcdn.net/ajax/libs/vConsole/3.3.4/vconsole.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/2.2.4/jquery.js"></script>
+<script>
+    var vConsole = new VConsole();
+
+    var canvas = document.getElementById('canvas');
+    var ctx = canvas.getContext('2d');
+
+    var w = $('.canvas-main').width(),
+        h = $('.canvas-main').height(); // 画布外容器得宽高
+    canvas.width = w;
+    canvas.height = h;
+    canvas.style.width = w;
+    canvas.style.height = h; // 给画布设置宽高
+
+    var canWH = { w: canvas.width, h: canvas.height }; // canvas 宽高
+    var enlargePointOrigin = { x: 0, y: 0 }; // 图片移动, 缩放前得初始参数 (右上角坐标)
+    var enlargePoint = { x: 0, y: 0 }; // 图片移动，缩放的实时参数 （右上角坐标）
+    var imgPositionOrigin = { x: 0, y: 0, w: 0, h: 0 }; // 图片移动，缩放前的初始参数 （左上角坐标+宽高）
+    var imgPosition = { x: 0, y: 0, w: 0, h: 0 }; // 图片移动， 缩放前的实时参数 （左上角坐标+宽高）
+    var arcPoint = { x: canvas.width / 2, y: canvas.height / 2, r: canvas.width / 2 - 50 }; // 中间圆得 初始圆心坐标，初始半径
+    var rectCenterPoint = { x: 0, y: 0 }; // 缩放前初始平移参数 
+
+    var img; // 选择 图片对象
+    var imgSrcBase; // 选择 图片bese
+    var shageImageUrl; // 遮盖选区图片对象
+    var isLoad = 0; // 选择得图片是否加载完毕
+
+    var _downX = 0;
+    var _downY = 0;
+    var obj = {};
+    var start = [];
+
+    $(function () {
+        // 选择图片
+        $('#fileInput').change(function () {
+            $('.clipImg').hide();
+            $('.canvas-main').show();
+            imageDeal(this, dealChange);
+        })
+
+        $('#saveImg').click(function () {
+            if (img != undefined) {
+                clip(function (localImg) {
+                    // console.log(localImg.src)
+                    $('.canvas-main').hide();
+                    $('.clipImg').show();
+                    $('.clipImg').attr('src', localImg.src)
+                })
+            } else {
+                alert('未选择图片')
+            }
+        })
+        isAndroidOrPC()
+        console.log(isAndroidOrPC())
+    })
+
+    // 选择图片得回调函数
+    var dealChange = function (blob, base64) {
+        imgSrcBase = base64;
+        erase();
+        loadImg(imgSrcBase, function (localImg) {
+            img = localImg;
+            isLoad = true;
+
+            imgPosition.w = canvas.width;
+            imgPosition.h = img.height * canvas.width / img.width;
+            imgPositionOrigin.w = canvas.width;
+            imgPositionOrigin.h = img.height * canvas.width / img.width;
+            enlargePoint.x = canvas.width;
+            enlargePointOrigin.x = canvas.width;
+            imgPosition.y = (canvas.height - img.height * canvas.width / img.width) / 2;
+            imgPositionOrigin.y = (canvas.height - img.height * canvas.width / img.width) / 2;
+
+            ctx.drawImage(img, 0, imgPosition.y, imgPosition.w, imgPosition.h);
+
+            shadeInit(canWH, function (_localImg) {
+                shageImageUrl = _localImg
+                $('.shadeImg').attr('src', shageImageUrl.src)
+                // ctx.drawImage(_localImg, 0, 0, canWH.w, canWH.h)
+            })
+        })
+
+        canvas.addEventListener("touchstart", function (ev) {
+            _downX = ev.targetTouches[0].pageX - getAbsLeft(canvas);
+            _downY = ev.targetTouches[0].pageY - getAbsTop(canvas);
+
+            if (ev.touches.length >= 2) { // 判断是否有两个点在屏幕上
+                erase();
+                start = ev.touches; // 得到第一组两个点
+                canvas.addEventListener('touchmove', MoveFun, false);
+            }
+
+            if ((_downX > imgPosition.x) && (_downX < imgPosition.x + imgPosition.w) && (_downY > imgPosition.y) && (_downY < imgPosition.y + imgPosition.h)) {
+                canvas.addEventListener('touchmove', MoveFun, false);
+            }
+
+            canvas.addEventListener('touchend', function (ev) {
+                imgPositionOrigin.x = imgPosition.x;
+                imgPositionOrigin.y = imgPosition.y;
+                imgPositionOrigin.w = imgPosition.w;
+                imgPositionOrigin.h = imgPosition.h;
+                enlargePointOrigin.x = enlargePoint.x;
+                enlargePointOrigin.y = enlargePoint.y;
+                _downX = 0;
+                _downY = 0;
+
+                canvas.removeEventListener('touchmove', MoveFun, false)
+            })
+
+        })
+    }
+
+    /** 裁剪 */
+    function clip(callback) {
+        ctx.clearRect(0, 0, canWH.w, canWH.h)
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(arcPoint.x, arcPoint.y, arcPoint.r, 0, Math.PI * 2, false);
+        ctx.clip();
+        ctx.drawImage(img, imgPosition.x, imgPosition.y, imgPosition.w, imgPosition.h);
+        ctx.restore();
+        var clipSrc = canvas.toDataURL();
+
+        loadImg(clipSrc, function (localImg) {
+            offWhite(localImg, canWH, function(_localImg) {
+                callback(_localImg)
+            })
+        })
+    }
+
+    function MoveFun(ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        let x = ev.targetTouches[0].pageX - getAbsLeft(canvas);
+        let y = ev.targetTouches[0].pageY - getAbsTop(canvas);
+
+        imgPosition.x = imgPositionOrigin.x + (x - _downX);
+        imgPosition.y = imgPositionOrigin.y + (y - _downY);
+        enlargePoint.x = enlargePointOrigin.x + (x - _downX);
+        enlargePoint.y = enlargePointOrigin.y + (y - _downY);
+
+        if (ev.touches.length >= 2) {
+            var now = ev.touches;
+            var scale = getDistance(now[0], now[1]) / getDistance(start[0], start[1]);
+            var rotation = getAngle(now[0], now[1]) - getAngle(start[0], start[1]);
+
+            imgPosition.w = imgPosition.w * scale;
+            imgPosition.h = imgPosition.h * scale;
+            rectCenterPoint = {
+                x: imgPosition.x + imgPosition.w / 2,
+                y: imgPosition.y + imgPosition.h / 2
+            }
+
+            // scale <= 0.5 ? scale = 0.5 : scale
+            
+            erase();
+            ctx.translate(rectCenterPoint.x * (1 - scale), rectCenterPoint.y * (1 - scale));
+            ctx.scale(scale, scale);
+
+            canvas.width = canWH.w;
+            canvas.height = canWH.h;
+
+            if (Math.abs(Math.ceil(rotation)) >= 2) {
+                ctx.translate(rectCenterPoint.x, rectCenterPoint.y);
+                ctx.rotate(Math.PI / 180 * rotation);
+                ctx.translate(-rectCenterPoint.x, -rectCenterPoint.y);
+
+                canvas.width = canWH.w;
+                canvas.height = canWH.h;
+                erase();
+                draw();
+            }
+
+            // erase();
+            // draw();
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canWH.w, canWH.h);
+            ctx.drawImage(
+                img,
+                imgPosition.x / scale,
+                imgPosition.y / scale,
+                imgPosition.w,
+                imgPosition.h
+            )
+            // ctx.drawImage(shageImageUrl, 0, 0, canWH.w, canWH.h)
+            return;
+        }
+        
+        erase();
+        draw(); 
+        // ctx.drawImage(shageImageUrl, 0, 0, canWH.w, canWH.h)
+    }
+
+    /** 去除多余留白 */
+    function offWhite(signImg, canvasWH, callback) {
+        let _canvas = document.createElement('canvas');
+        _canvas.width = canvasWH.w;
+        _canvas.height = canvasWH.h;
+        let _ctx = _canvas.getContext('2d');
+        _ctx.drawImage(signImg, 0, 0);
+
+        let imgData = _ctx.getImageData(0, 0, _canvas.width, _canvas.height).data;
+        var lOffset = _canvas.width,
+            rOffset = 0,
+            tOffset = _canvas.height,
+            bOffset = 0;
+        for (let i = 0; i < _canvas.width; i++) {
+            for (let j = 0; j < _canvas.height; j++) {
+                let pos = (i + _canvas.width * j) * 4;
+                if (imgData[pos] == 255 || imgData[pos + 1] == 255 || imgData[pos + 2] == 255 || imgData[pos + 3] == 255) {
+                    bOffset = Math.max(j, bOffset); // 找到有色彩得最下端
+                    rOffset = Math.max(i, rOffset); // 找到有色彩得最右端
+
+                    tOffset = Math.min(j, tOffset); // 找到有色彩得最上端
+                    lOffset = Math.min(i, lOffset); // 找到有色彩得最左端
+                }
+            }
+        }
+        lOffset++;
+        rOffset++;
+        tOffset++;
+        bOffset++;
+
+        let _canvasT = document.createElement('canvas');
+        _canvasT.width = rOffset - lOffset;
+        _canvasT.height = bOffset - tOffset;
+        let _ctxT = _canvasT.getContext('2d');
+        _ctxT.drawImage(signImg, lOffset, tOffset, _canvasT.width, _canvasT.height, 0, 0, _canvasT.width, _canvasT.height);
+        let dataSrc = _canvasT.toDataURL();
+
+        loadImg(dataSrc, function (localImg) {
+            callback(localImg)
+        })
+    }
+
+    /** 遮罩蒙层 */
+    var shadeInit = function (canWH, callback) {
+        let _canvas = document.createElement("canvas");
+        let _ctx = _canvas.getContext('2d');
+        _canvas.width = canWH.w;
+        _canvas.height = canWH.h;
+        let _arcPoint = { x: canWH.w / 2, y: canWH.h / 2, r: canWH.w / 2 - 50 };
+        _ctx.clearRect(0, 0, canWH.w, canWH.h);
+
+        _ctx.globalCompositeOperation = 'xor'; // 图形重叠时变成透明
+        _ctx.fillStyle = '#000';
+        _ctx.beginPath();
+        _ctx.moveTo(0, 0);
+        _ctx.lineTo(canWH.w, 0);
+        _ctx.lineTo(canWH.w, canWH.h);
+        _ctx.lineTo(0, canWH.h);
+        _ctx.lineTo(0, 0);
+        _ctx.closePath();
+        _ctx.fill();
+
+        _ctx.beginPath();
+        _ctx.arc(_arcPoint.x, _arcPoint.y, _arcPoint.r, 0, Math.PI * 2);
+        _ctx.closePath();
+        _ctx.fill();
+
+        let shadeSrc = _canvas.toDataURL();
+
+        loadImg(shadeSrc, function (localImg) {
+            _ctx.clearRect(0, 0, _canvas.width, _canvas.height);
+            // _ctx.globalCompositeOperation = 'source-over';
+            _ctx.globalAlpha = .4;
+            _ctx.drawImage(localImg, 0, 0, _canvas.width, _canvas.height);
+
+            _ctx.beginPath();
+            _ctx.setLineDash([10, 15]);
+            _ctx.strokeStyle = '#fff';
+            _ctx.lineWidth = 3;
+            _ctx.arc(_arcPoint.x, _arcPoint.y, _arcPoint.r + 2, 0, Math.PI * 2);
+            _ctx.closePath();
+            _ctx.stroke();
+
+            let _shadeSrc = _canvas.toDataURL();
+
+            loadImg(_shadeSrc, function (_localImg) {
+                _ctx.clearRect(0, 0, _canvas.width, _canvas.height);
+                callback(_localImg)
+            })
+        })
+    }
+
+    // 载入图片
+    function loadImg(imgSrc, callback) {
+        let n = new Image;
+        n.crossOrigin = 'Anonymous';
+        n.onload = function () {
+            callback(n)
+        };
+        n.src = imgSrc;
+    }
+
+    /** 将图片载入画布中 */
+    function draw() {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canWH.w, canWH.h);
+        ctx.drawImage(
+            img,
+            imgPosition.x,
+            imgPosition.y,
+            imgPosition.w,
+            imgPosition.h
+        )
+    }
+
+    /** 清空画布 */
+    function erase() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+    }
+
+    /** 获取对象到屏幕最左边得距离 */
+    function getAbsLeft(obj) {
+        let l = obj.offsetLeft;
+        while (obj.offsetParent != null) {
+            obj = obj.offsetParent;
+            l += obj.offsetLeft;
+        }
+        return l;
+    }
+
+    /** 获取对象到屏幕最顶端得距离 */
+    function getAbsTop(obj) {
+        let t = obj.offsetTop;
+        while (obj.offsetParent != null) {
+            obj = obj.offsetParent;
+            t += obj.offsetTop;
+        }
+        return t;
+    }
+
+    /** 计算缩放比例 勾股定理 */
+    function getDistance(p1, p2) {
+        let x = p2.pageX - p1.pageX;
+        let y = p2.pageY - p1.pageY;
+        return Math.sqrt((x * x) + (y * y))
+    }
+
+    /** 计算旋转角度 夹角 */
+    function getAngle(p1, p2) {
+        let x = p1.pageX - p2.pageX;
+        let y = p1.pageY - p2.pageY;
+        return Math.atan2(y, x) * 180 / Math.PI;
+    }
+
+    /** 
+    * 从input 元素中, 获取到file 并转成base64，然后调用缩放方法
+    */
+    var imageDeal = function (els, returnBase64) {
+        // 获取file, 转成base64
+        let file = els.files[0]; // 取传入得第一个文件
+        if (undefined == file) { // 如果未找到文件，结束函数，跳出
+            return;
+        }
+        // console.log('file', file);
+        let r = new FileReader();
+        r.readAsDataURL(file);
+        r.onload = function (e) {
+            let base64 = e.target.result;
+            let bili = 3;
+            // console.log('压缩前', base64.length);
+            compress(base64, bili, returnBase64);
+        }
+    }
+
+    /**
+     *  转换成Base64 格式
+     */
+    var compress = function (base64, bili, callback) {
+        // console.log('执行缩放程序, bili= ', bili);
+        // 处理缩放, 转格式
+        let _img = new Image();
+        _img.src = base64;
+        _img.onload = function () {
+            let _canvas = document.createElement('canvas');
+            let w = this.width / bili;
+            let h = this.height / bili;
+            _canvas.setAttribute('width', w);
+            _canvas.setAttribute('height', h);
+            _canvas.getContext('2d').drawImage(this, 0, 0, w, h);
+            let base64 = _canvas.toDataURL('image/jpeg');
+            _canvas.toBlob(function (blob) {
+                // console.log('blob', blob.size);
+                if (blob.size > 1024 * 1024) {
+                    compress(base64, bili, callback);
+                } else {
+                    callback(blob, base64);
+                }
+            }, 'image/jpeg');
+        }
+    }
+
+    /**
+     * 判断当前浏览是手机端还是PC端
+     */
+    function isAndroidOrPC () {
+        var isUserAgent = navigator.userAgent.toLowerCase();
+        var isIpad = isUserAgent.match(/ipad/i) == "ipad",
+            isIphoneOs = isUserAgent.match(/iphone os/i) == "iphone os",
+            isMidp = isUserAgent.match(/midp/i) == "midp",
+            isUc7 = isUserAgent.match(/rv:1.2.3.4/i) == "rv:1.2.3.4",
+            isUc = isUserAgent.match(/ucweb/i) == "ucweb",
+            isAndroid = isUserAgent.match(/android/i) == "android",
+            isCE = isUserAgent.match(/windows ce/i) == "windows ce",
+            isWM = isUserAgent.match(/windows mobile/i) == "windows mobile";
+
+        if (!(isIpad || isIphoneOs || isMidp || isUc7 || isUc || isAndroid || isCE || isWM)) {
+            console.log("当前是电脑打开")
+            return 'PC'
+        } else {
+            console.log("当前是手机打开")
+            return 'Android'
+        }
+
+        // if (/ipad|iphone|midp|rv:1.2.3.4|ucweb|android|windows ce|windows mobile/.test(isUserAgent)){
+        //     console.log("当前是手机打开")
+        // } else {
+        //     console.log("当前是电脑打开")
+        // }
+    }
+
+</script>
+
+</html>
