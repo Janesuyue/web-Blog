@@ -1,25 +1,43 @@
 import Vue from 'vue'
-import VueRouter from 'vue-router'
+import Router from 'vue-router'
 
-import Layout from "../layout/Layout.vue"
+import Layout from "@/layout"
 
-Vue.use(VueRouter)
+Vue.use(Router)
 
-const routes = [
+export const constantRoutes = [
+  // {
+  //   path: '/redirect',
+  //   component: Layout,
+  //   hidden: true,
+  //   children: [
+  //     {
+  //       path: '/redirect/:path(.*)',
+  //       component: (resolve) => require(['@/views/redirect'], resolve)
+  //     }
+  //   ]
+  // },
   {
-    path: '/',
+    path: '',
     component: Layout,
-    redirect: '/home',
-    name: '首页',
+    redirect: '/loading',
     children: [
-      { path: 'home', component: () => import('../views/test/index') },
-      // { path: 'home', component: () => import('../views/index/index') }
+      {
+        path: '/',
+        name: '首页',
+        component: (resolve) => require(['@/views/index'], resolve)
+      },
+      {
+        path: '/loading',
+        name: 'CSS',
+        component: (resolve) => require(['@/views/CSS/loading'], resolve)
+      }
     ]
   }
 ]
 
-const router = new VueRouter({
-  routes
+export default new Router({
+  mode: 'history', // 去掉url中的#
+  scrollBehavior: () => ({ y: 0 }),
+  routes: constantRoutes
 })
-
-export default router

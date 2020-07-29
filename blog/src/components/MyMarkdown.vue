@@ -1,3 +1,8 @@
+<!-- 公共组件 加载 .md 文件
+/**
+ * 
+ */
+-->
 <template>
   <section :is="articleComponent"></section>
 </template>

@@ -1,0 +1,46 @@
+.hljs {
+    font-size: 16.5px;
+    font-family: Roboto Mono, Menlo, Consolas, monospace;
+    background: none !important;
+}
+
+pre {
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    word-wrap: normal;
+    line-height: 1.5rem;
+    -moz-tab-size: 2;
+    tab-size: 2;
+    -webkit-hypens: none;
+    -webkit-hyphens: none;
+    hyphens: none;
+}
+
+pre {
+    position: relative;
+    background: #1e253d;
+    padding: 0;
+    border: 0;
+    /* margin-bottom: -2.25rem!important; */
+}
+
+pre.border-first {
+    border-radius: 1.375rem 0 0 0;
+}
+
+pre.border-last {
+    border-radius: 0 0 .25rem .25rem;
+    border-top: 1px solid #607d8b;
+}
+
+pre::before {
+    font-size: 1.2rem;
+    color: #607d8b;
+    position: absolute;
+    top: .8725rem;
+    left: 1.5rem;
+    display: block;
+    content: attr(data-code-language);
+}

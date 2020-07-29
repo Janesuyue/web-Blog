@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;" />
-    <title>Canvas 头像制作</title>
+    <title>H5 Canvas 头像制作</title>
     <style>
         * { margin: 0; padding: 0; }
         html, body { width: 100%; height: 100%; }
@@ -28,7 +28,13 @@
     <div class="input-file-main">
         <button class="fileBtn" id="fileBtn">上传图片</button>
         <!-- <input type="file" name="file" accept="image/gif, image/jpeg, image/bmp" capture="camera" imgcount="0" class="input-file" id="fileInput" multiple="multiple"> -->
+
+        <!-- 打开手机相册 accept="image/*" capture="camera" -->
         <input type="file" name="file" accept="image/gif, image/jpeg, image/bmp, image/png" capture="camera" class="input-file" id="fileInput">
+
+        <!-- 打开手机相机 accept="image/*" capture="environment" { environment 后置, user 前置 } -->
+        <!-- <input type="file" name="file" accept="image/*" capture="environment" class="input-file" id="fileInput"> -->
+
         <button class="saveImg" id="saveImg"">保存图片</button>
     </div>
 </body>

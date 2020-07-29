@@ -1,0 +1,1 @@
+var str="Hello gulp";function add(d,l){return d+l}console.log(str,add(1,2)),add(4,5);

@@ -1,11 +1,12 @@
 <template>
   <div>
+    index
     <!-- <pre>
         <code>
             <div></div>
         </code>
     </pre> -->
-    <!-- <mavon-editor
+    <mavon-editor
       :toolbars="toolbars"
       @imgAdd="handleEditorImgAdd"
       @imgDel="handleEditorImgDel"
@@ -14,7 +15,7 @@
       @change="change"
       ref="md"
       :ishljs="true"
-    />-->
+    />
     <!-- <article class="markdown-body" style="text-align:left" v-html="content"></article> -->
   </div>
 </template>
@@ -84,11 +85,11 @@ export default {
 
   methods: {
     //监听markdown变化
-    change(value, render) {
+    // change(value, render) {
       //   this.html = render;
       //   this.blogInfo.blogMdContent = value;
       //   this.blogInfo.blogContent = render;
-    },
+    // },
     //上传图片接口pos 表示第几个图片
     handleEditorImgAdd(pos, $file) {
       var formdata = new FormData();

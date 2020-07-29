@@ -1,3 +1,8 @@
+const path = require('path')
+function resolve(dir) {
+    return path.join(__dirname, dir)
+}
+
 module.exports = {
     publicPath: '/',
     outputDir: 'dist',
@@ -27,18 +32,25 @@ module.exports = {
         open: true,
         // proxy: {}
     },
+    configureWebpack: {
+        resolve: {
+            alias: {
+                '@': resolve('src')
+            }
+        }
+    },
     chainWebpack: config => { // 热更新
         config.resolve.symlinks(true)
         config.module.rule('md')
-          .test(/\.md/)
-          .use('vue-loader')
-          .loader('vue-loader')
-          .end()
-          .use('vue-markdown-loader')
-          .loader('vue-markdown-loader/lib/markdown-compiler')
-          .options({
-            raw: true
-        })
+            .test(/\.md/)
+            .use('vue-loader')
+            .loader('vue-loader')
+            .end()
+            .use('vue-markdown-loader')
+            .loader('vue-markdown-loader/lib/markdown-compiler')
+            .options({
+                raw: true
+            })
     },
     pluginOptions: { // 第三方插件配置
 

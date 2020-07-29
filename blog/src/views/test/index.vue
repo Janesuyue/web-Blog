@@ -1,18 +1,19 @@
 <template>
   <div class="test">
-    <my-markdown name="12"/>
-    <!-- <pre v-highlightA>
+    <!-- <my-markdown name="12"/> -->
+    <pre v-highlightA>
         <code >
           function () {
             var arr = []
           }
         </code>
-    </pre> -->
+    </pre>
   </div>
 </template>
 
 <script>
 export default {
+  name: "test",
   data() {
     return {
     }

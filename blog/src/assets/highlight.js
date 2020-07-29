@@ -1,8 +1,8 @@
 // highlight.js  代码高亮指令
 // import Vue from 'vue';
 import Hljs from 'highlight.js';
-import 'highlight.js/styles/monokai-sublime.css';
-// import 'highlight.js/styles/solarized_light.css';
+// import 'highlight.js/styles/monokai-sublime.css';
+// import 'highlight.js/styles/mono-blue.css';
 
 
 
