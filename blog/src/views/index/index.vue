@@ -6,7 +6,7 @@
             <div></div>
         </code>
     </pre> -->
-    <mavon-editor
+    <!-- <mavon-editor
       :toolbars="toolbars"
       @imgAdd="handleEditorImgAdd"
       @imgDel="handleEditorImgDel"
@@ -15,7 +15,7 @@
       @change="change"
       ref="md"
       :ishljs="true"
-    />
+    /> -->
     <!-- <article class="markdown-body" style="text-align:left" v-html="content"></article> -->
   </div>
 </template>
